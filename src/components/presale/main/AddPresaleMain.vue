@@ -32,6 +32,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
     (e: 'update:visible', value: boolean): void;
+    (e:'reoload'):void;
 }>();
 const addDialogVisible = computed({
     get: () => props.visible,
@@ -72,9 +73,16 @@ function close() {
     pastPresale.value = "";
 }
 async function submitPresale() {
-    console.log("submit presale:", pastedRows.value);
-    const resp = await http.post('/presaleMain/batchInsert', pastedRows.value);
-    console.log("submit presale response:", resp);
+    
+    try{
+        const resp = await http.post('/presaleMain/batchInsert', pastedRows.value);
+        close();
+        emit('reoload');
+    }catch(error){
+        console.error("Failed to submit presale data:", error);
+        close();
+    }
+    
 }
 </script>
 <style scoped></style>

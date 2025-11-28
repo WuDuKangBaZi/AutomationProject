@@ -1,74 +1,141 @@
 <template>
     <div class="presale-view">
-        <el-card class="search-card">
-            <el-form label-width="80px" class="search-form">
-                <!-- 表单字段容器 -->
-                <div class="form-fields">
-                    <el-form-item label="配置日期">
-                        <el-date-picker type="date" v-model="formData.configDate" value-format="YYYY-MM-DD" />
-                    </el-form-item>
+        <el-form label-width="80px" class="search-form" style="flex: 0 0 auto;">
+            <div class="form-fields">
+                <el-form-item label="配置日期">
+                    <el-date-picker type="date" v-model="formData.configDate" value-format="YYYY-MM-DD" />
+                </el-form-item>
 
-                    <el-form-item label="预售编码">
-                        <el-input placeholder="请输入预售编码" v-model="formData.goodsCode" />
-                    </el-form-item>
+                <el-form-item label="预售编码">
+                    <el-input placeholder="请输入预售编码" v-model="formData.goodsCode" />
+                </el-form-item>
 
-                    <el-form-item label="处理方式" style="width: 200px;">
-                        <el-select placeholder="请选择处理方式" v-model="formData.handlingMethod">
-                            <el-option label="全部" value="全部" />
-                            <el-option label="预售" value="预售" />
-                            <el-option label="取消预售" value="取消预售" />
-                            <el-option label="下架" value="下架" />
-                        </el-select>
-                    </el-form-item>
-                </div>
-                <div class="form-actions">
-                    <el-button type="primary" @click="onSearch">搜索</el-button>
-                    <el-button type="success" small @click="openAddDialog">批量导入</el-button>
-                    <el-button type="success" link @click="shoowShopConfig">配置店铺</el-button>
-                    <el-button type="warning" small link>导出结果</el-button>
-                </div>
-            </el-form>
-            <el-divider />
-            <el-table :data="searchData" style="width: 100%; margin-top: 20px;" empty-text="暂无数据" show-overflow-tooltip="true">
-                <el-table-column label="配置日期">
+                <el-form-item label="处理方式" style="width: 200px;">
+                    <el-select placeholder="请选择处理方式" v-model="formData.handlingMethod">
+                        <el-option label="全部" value="" />
+                        <el-option label="预售" value="预售" />
+                        <el-option label="取消预售" value="取消预售" />
+                        <el-option label="下架" value="下架" />
+                    </el-select>
+                </el-form-item>
+            </div>
+
+            <div class="form-actions">
+                <el-button type="primary" @click="onSearch">搜索</el-button>
+                <el-button type="success" small @click="openAddDialog">批量导入</el-button>
+                <el-button type="success" link @click="shoowShopConfig">配置店铺</el-button>
+                <el-button type="warning" small link>导出结果</el-button>
+            </div>
+        </el-form>
+
+        <el-divider style="flex: 0 0 auto; margin: 8px 0;" />
+
+        <!-- 表格 + 分页容器 -->
+        <div class="table-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <el-table :data="searchData" style="flex: 1; width: 100%;" empty-text="暂无数据" :show-overflow-tooltip="true">
+                <el-table-column label="配置日期" width="175px" prop="configDateTime" />
+                <el-table-column prop="goodsCode" label="商品编码" width="200px">
                     <template #default="scope">
-                        {{ scope.row?.configDate }} {{ scope.row?.configTime }}
+                        <span style="cursor:pointer; color:#409EFF;" @click="copyText(scope.row?.goodsCode)">
+                            {{ scope.row?.goodsCode }}
+                        </span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="goodsCode" label="商品编码" />
-                <el-table-column prop="shortageReason" label="缺货原因" />
-                <el-table-column prop="presaleEndTime" label="预售截止时间" />
+                <el-table-column prop="goodsName" label="商品名称" min-width="200">
+                    <template #default="scope">
+                        <span style="cursor:pointer; color:#409EFF;" @click="copyText(scope.row?.goodsName)">
+                            {{ scope.row?.goodsName }}
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="shortageReason" label="缺货原因" min-width="80" max-width="100" />
+                <el-table-column prop="presaleEndTime" label="预售截止" width="100" />
                 <el-table-column prop="handlingMethod" label="处理方式" />
                 <el-table-column prop="personInCharge" label="负责人" />
-               <el-table-column label="操作">
-                <template #default="scope">
-                    <div class="action-buttons">
-                        <el-button link size="small" type="primary">
-                            查看详细
-                        </el-button>
-                    </div>
-                </template>
-               </el-table-column> 
+                <el-table-column label="ERP采集">
+                    <template #default="scope">
+                        <div style="display: flex;gap: 3px; flex-wrap: wrap;">
+                            <el-tag size="small" type="info" effect="plain" title="总任务数">
+                                总:{{ scope.row?.mainTaskTotal }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.mainTaskRunning > 0" size="small" type="primary" effect="plain"
+                                title="进行中">
+                                进行中:{{ scope.row?.mainTaskRunning }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.mainTaskSuccess > 0" size="small" type="success" effect="plain"
+                                title="成功数">
+                                成功:{{ scope.row?.mainTaskSuccess }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.mainTaskFailed > 0" size="small" type="danger" effect="plain"
+                                title="失败数">
+                                失败:{{ scope.row?.mainTaskFailed }}
+                            </el-tag>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="店铺执行">
+                    <template #default="scope">
+                        <div style="display: flex; gap: 1px; flex-wrap: wrap;">
+                            <el-tag size="small" type="info" effect="plain" title="总任务数">
+                                总:{{ scope.row?.erpTaskTotal }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.shopTaskRunning > 0" size="small" type="primary" effect="plain"
+                                title="进行中">
+                                进行中:{{ scope.row?.erpTaskRunning }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.erpTaskSuccess > 0" size="small" type="success" effect="plain"
+                                title="成功数">
+                                成功:{{ scope.row?.erpTaskSuccess }}
+                            </el-tag>
+                            <el-tag v-if="scope.row?.erpTaskFail > 0" size="small" type="danger" effect="plain"
+                                title="失败数">
+                                失败:{{ scope.row?.erpTaskFail }}
+                            </el-tag>
+                        </div>
+                    </template>
+                </el-table-column>
+                <el-table-column label="操作">
+                    <template #default="scope">
+                        <div class="action-buttons">
+                            <el-button link size="small" type="primary" @click="showPresaleInfo(scope.row)">查看详细</el-button>
+                        </div>
+                    </template>
+                </el-table-column>
             </el-table>
-            <el-pagination style="margin-top: 20px;" layout="prev, pager, next" :total="searchData.length" />
-            
-        </el-card>
+
+            <!-- 分页 -->
+            <div style="flex: 0 0 auto; margin-top: 10px;">
+                <el-pagination v-model:current-page="currentPage" v-model:page-size="formData.pageSize"
+                    :page-sizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next" :total="total"
+                    @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+            </div>
+        </div>
+        <ShopConfig v-model:visible="shopConfigVisible" />
+        <AddPresaleMain v-model:visible="addPresaleDialogVisible" @reoload="onSearch"/>
+        <PresaleMainInfo v-model:visible="presaleInfo" :selectedPresaleMain="selectedRow" />
     </div>
-    <ShopConfig v-model:visible="shopConfigVisible" />
-    <AddPresaleMain v-model:visible="addPresaleDialogVisible" />
 </template>
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue';
 
 import ShopConfig from '@/components/presale/shop/ShopConfig.vue';
 import AddPresaleMain from '@/components/presale/main/AddPresaleMain.vue';
+import PresaleMainInfo from '@/components/presale/main/PresaleMainInfo.vue';
 import http from '@/utils/http';
+import { ElMessage } from 'element-plus';
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
+const presaleInfo = ref(false);
 const shopConfigVisible = ref(false);
 const addPresaleDialogVisible = ref(false);
+const selectedRow = ref<any>(null);
 const formData = reactive({
     configDate: "",
     goodsCode: '',
-    handlingMethod: ''
+    handlingMethod: '',
+    pageNo: 1,
+    pageSize: 20
 });
 const searchData = ref<any[]>([]);
 function shoowShopConfig() {
@@ -80,12 +147,44 @@ function openAddDialog() {
 }
 async function onSearch() {
     console.log("on search");
-    const resp = await http.post<any>('/presaleMain/search',formData);
-    console.log("search response:",resp);    
-    searchData.value = resp || [];
+    const resp = await http.post<any>('/presaleMain/search', formData);
+    total.value = resp.total;
+    searchData.value = resp.records || [];
 }
 function onTabChange(name: string) {
     console.log("tab changed to ", name);
+}
+function copyText(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+        console.log('Text copied to clipboard:', text);
+        ElMessage({
+            message: '已复制到剪贴板',
+            type: 'success',
+            duration: 500
+        });
+    }).catch(err => {
+        console.error('Could not copy text: ', err);
+        ElMessage({
+            message: '复制到剪切板失败!',
+            type: 'error',
+            duration: 3000
+        });
+    });
+}
+function handleSizeChange(size: number) {
+    pageSize.value = size;
+    formData.pageSize = size;
+    onSearch();
+}
+function handleCurrentChange(page: number) {
+    currentPage.value = page;
+    formData.pageNo = page;
+    onSearch();
+}
+function showPresaleInfo(row:any){
+    console.log("show presale info:",row);
+    selectedRow.value = row;
+    presaleInfo.value = true;
 }
 onMounted(() => {
     const today = new Date();
@@ -98,21 +197,26 @@ onMounted(() => {
 
 </script>
 <style scoped>
-.search-card {
-    padding: 16px;
+.presale-view {
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }
 
-/* 表单字段容器 */
+.search-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .search-form .form-fields {
     display: flex;
     flex-wrap: wrap;
-    /* 超出宽度自动换行 */
     gap: 16px;
-    /* 字段之间间距 */
 }
 
-
-/* 按钮组 */
 .search-form .form-actions {
     display: flex;
     flex-wrap: wrap;
@@ -120,9 +224,10 @@ onMounted(() => {
     margin-top: 16px;
 }
 
-.search-form.form-fields.el-form-item {
-    flex: 0 0 auto;
-    /* min-width: 200px; */
-    margin-right: 20px;
+.table-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 </style>
