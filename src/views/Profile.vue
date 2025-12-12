@@ -40,15 +40,18 @@ import { useAuthStore } from '@/stores/auth';
 import type { ApiResponse } from '@/types/api';
 import http, { globalLoading } from '@/utils/http';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 const MAX_AVATAR_MB = 2;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const authStore = useAuthStore();
 
+onMounted(() => {
+    console.log(import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, ''));
+});
 const form = ref({
     username: authStore.userInfo?.username || '',
     avatar: authStore.userInfo?.avatar
-        ? `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}${authStore.userInfo?.avatar}`
+        ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '')}${authStore.userInfo?.avatar}`
         : '/images/default.webp',
     account: authStore.userInfo?.account || '',
     phone: authStore.userInfo?.phone || ''

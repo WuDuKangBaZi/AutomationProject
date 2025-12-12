@@ -57,6 +57,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 const shopConfigList = ref<Array<any>>([]);
 const shopEditVisible = ref(false);
 const selectedShopInfo = ref<any>(null);
+
 const props = defineProps<{
     visible: boolean;
 }>();

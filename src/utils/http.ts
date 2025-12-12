@@ -92,27 +92,6 @@ class Http {
       if (!res.ok) {
         throw new Error(`HTTP 错误：${res.status}`);
       }
-      const data: ApiResponse<T> = await res.json();
-      // ⭐⭐⭐ 401 自动刷新 token
-      if (data.code === 401 && !retry) {
-        // 401 token过期，进入刷新逻辑
-        return await new Promise<T>((resolve, reject) => {
-          this.retryQueue.push(async () => {
-            try {
-              const data = await this.request<T>(url, options, true);
-              resolve(data);
-            } catch (err) {
-              reject(err);
-            }
-          });
-
-          this.refreshToken().catch(reject);
-        });
-      } else if (data.code !== 200) {
-        // 其他错误
-        throw new Error(data.message || "请求错误");
-      }
-      // 文件下载支持
       const contentDisp = res.headers.get('Content-Disposition') || res.headers.get('content-disposition');
       if (contentDisp) {
         const blob = await res.blob();
@@ -134,6 +113,29 @@ class Http {
         window.URL.revokeObjectURL(urlObject);
         return (undefined as unknown) as T;
       }
+      
+      const data: ApiResponse<T> = await res.json();
+      // ⭐⭐⭐ 401 自动刷新 token
+      if (data.code === 401 && !retry) {
+        // 401 token过期，进入刷新逻辑
+        return await new Promise<T>((resolve, reject) => {
+          this.retryQueue.push(async () => {
+            try {
+              const data = await this.request<T>(url, options, true);
+              resolve(data);
+            } catch (err) {
+              reject(err);
+            }
+          });
+
+          this.refreshToken().catch(reject);
+        });
+      } else if (data.code !== 200) {
+        // 其他错误
+        throw new Error(data.message || "请求错误");
+      }
+      // 文件下载支持
+      
 
 
       if (data.code === 200) {

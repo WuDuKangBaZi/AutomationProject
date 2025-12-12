@@ -24,7 +24,7 @@
                 <el-button type="primary" @click="onSearch">搜索</el-button>
                 <el-button type="success" small @click="openAddDialog">批量导入</el-button>
                 <el-button type="success" link @click="shoowShopConfig">配置店铺</el-button>
-                <el-button type="warning" small link>导出结果</el-button>
+                <el-button type="warning" small link @click="exportExcel">导出结果</el-button>
             </div>
         </el-form>
 
@@ -97,7 +97,8 @@
                 <el-table-column label="操作">
                     <template #default="scope">
                         <div class="action-buttons">
-                            <el-button link size="small" type="primary" @click="showPresaleInfo(scope.row)">查看详细</el-button>
+                            <el-button link size="small" type="primary"
+                                @click="showPresaleInfo(scope.row)">查看详细</el-button>
                         </div>
                     </template>
                 </el-table-column>
@@ -111,18 +112,18 @@
             </div>
         </div>
         <ShopConfig v-model:visible="shopConfigVisible" />
-        <AddPresaleMain v-model:visible="addPresaleDialogVisible" @reoload="onSearch"/>
+        <AddPresaleMain v-model:visible="addPresaleDialogVisible" @reoload="onSearch" />
         <PresaleMainInfo v-model:visible="presaleInfo" :selectedPresaleMain="selectedRow" />
     </div>
 </template>
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue';
+import { defineComponent, h, onMounted, reactive, ref } from 'vue';
 
 import ShopConfig from '@/components/presale/shop/ShopConfig.vue';
 import AddPresaleMain from '@/components/presale/main/AddPresaleMain.vue';
 import PresaleMainInfo from '@/components/presale/main/PresaleMainInfo.vue';
 import http from '@/utils/http';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox, ElRadio, ElRadioGroup } from 'element-plus';
 const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
@@ -151,9 +152,7 @@ async function onSearch() {
     total.value = resp.total;
     searchData.value = resp.records || [];
 }
-function onTabChange(name: string) {
-    console.log("tab changed to ", name);
-}
+
 function copyText(text: string) {
     navigator.clipboard.writeText(text).then(() => {
         console.log('Text copied to clipboard:', text);
@@ -171,6 +170,55 @@ function copyText(text: string) {
         });
     });
 }
+function exportExcel() {
+    const exportType = ref('明细')
+    const exprotOptions = ref('全部')
+    const ContentComponent = defineComponent({
+        setup() {
+            // 在组件内部维护状态，或者直接使用外部的 ref
+            return () => h('div', null, [
+                h('p', { style: 'margin-bottom: 5px; font-weight: bold;' }, '导出类型：'),
+                h(ElRadioGroup, {
+                    modelValue: exportType.value,
+                    'onUpdate:modelValue': (val: any) => { exportType.value = val }
+                }, () => [
+                    h(ElRadio, { value: '明细', label: '明细' }, () => '明细'),
+                    h(ElRadio, { value: '汇总', label: '汇总' }, () => '汇总')
+                ]),
+
+                h('p', { style: 'margin-top: 15px; margin-bottom: 5px; font-weight: bold;' }, '导出选项：'),
+                h(ElRadioGroup, {
+                    modelValue: exprotOptions.value,
+                    'onUpdate:modelValue': (val: any) => { exprotOptions.value = val }
+                }, () => [
+                    h(ElRadio, { value: '全部', label: '全部' }, () => '全部'),
+                    h(ElRadio, { value: '成功项', label: '成功项' }, () => '仅成功'),
+                    h(ElRadio, { value: '失败项', label: '失败项' }, () => '仅失败')
+                ])
+            ]);
+        }
+    });
+    ElMessageBox({
+        title: '请选择导出类型',
+        // 传入组件的 h 函数渲染结果
+        message: h(ContentComponent),
+        showCancelButton: true,
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+    }).then(async () => {
+        console.log("export excel:", exportType.value, exprotOptions.value);
+        const resp = await http.post('/pub/export/presaleMain',
+            {
+                presaleMainQueryDTO:formData,
+                exportType: exportType.value,
+                exportOption: exprotOptions.value
+            }
+        )
+        
+    }).catch(() => {
+        console.log("export cancelled");
+    })
+}
 function handleSizeChange(size: number) {
     pageSize.value = size;
     formData.pageSize = size;
@@ -181,8 +229,8 @@ function handleCurrentChange(page: number) {
     formData.pageNo = page;
     onSearch();
 }
-function showPresaleInfo(row:any){
-    console.log("show presale info:",row);
+function showPresaleInfo(row: any) {
+    console.log("show presale info:", row);
     selectedRow.value = row;
     presaleInfo.value = true;
 }

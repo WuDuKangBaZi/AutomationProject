@@ -42,7 +42,7 @@ function handleClose() {
     emit('update:visible', false);
 }
 async function saveRoles() {
-    console.log("保存用户角色", selectedUserRoleNames.value);
+    selectedUserRoleNames.value = selectedUserRoleNames.value.filter(r => r && r.trim() !== '');
     const resp = await http.post('/auth/setRoles', {
         userId: user.value.id,
         roles: selectedUserRoleNames.value
@@ -56,7 +56,10 @@ watch(() => props.visible, v => {
     user.value = props.user;
     console.log("当前用户:", user.value);
     visibleLocal.value = v;
-    selectedUserRoleNames.value = user.value?.roleNames.split(",") || [];
+    if(user.value?.roleNames !== ""){
+        selectedUserRoleNames.value = user.value?.roleNames.split(",") || [];
+    }
+    
     if (v && !roleList.value.length) getAllRoles();
 }, { immediate: true });
 

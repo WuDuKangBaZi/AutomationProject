@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import { computed, onMounted } from 'vue';
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { House, User, Setting, Avatar, Histogram, Service, Money,Timer } from '@element-plus/icons-vue'
+import { House, User, Setting, Avatar, Histogram, Service, Money,Timer, Edit } from '@element-plus/icons-vue'
 import router from '@/router';
 import http from '@/utils/http';
 const authStore = useAuthStore();
@@ -27,10 +27,9 @@ onMounted(async () => {
 
 const route = useRoute()
 const activeMenu = ref(route.path)
-const baseURL = import.meta.env.VITE_API_BASE_URL.replace('/api', '')
 const avatarUrl = computed(() => {
   return authStore.userInfo?.avatar
-    ? `${baseURL}${authStore.userInfo.avatar}`
+    ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, '')}${authStore.userInfo.avatar}`
     : '/images/default.webp'
 })
 const handleDropdownCommand = (command: string) => {
@@ -58,7 +57,7 @@ watch(route, () => {
     <el-container class="home-container">
       <el-aside width="7%" class="sidebar">
         <div class="sidebar-logo">
-          <img src="/images/logo.png" alt="Logo" />
+          <img src="/images/ddsw.png" alt="Logo" />
         </div>
         <el-menu :default-active="activeMenu" router background-color="#f0eeee" text-color="black"
           active-text-color="#409eff">
@@ -88,6 +87,12 @@ watch(route, () => {
                 <Timer />
               </el-icon>
               <span>预售管理</span>
+            </el-menu-item>
+            <el-menu-item index="/change-code">
+              <el-icon>
+                <Edit />
+              </el-icon>
+              <span>编码变更</span>
             </el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="3" v-if="authStore.userInfo?.roles.includes('客服组')">
@@ -129,8 +134,8 @@ watch(route, () => {
               <span>系统设置</span>
             </template>
             <el-menu-item index="/profile">个人资料</el-menu-item>
-            <el-menu-item index="/settings/general">常规设置</el-menu-item>
-            <el-menu-item index="/settings/security">安全设置</el-menu-item>
+            <!-- <el-menu-item index="/settings/general">常规设置</el-menu-item> -->
+            <!-- <el-menu-item index="/settings/security">安全设置</el-menu-item> -->
           </el-sub-menu>
         </el-menu>
       </el-aside>
