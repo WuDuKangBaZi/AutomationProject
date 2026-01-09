@@ -45,7 +45,7 @@
             </span>
         </template>
     </el-dialog>
-    <ShopEdit v-model:visible="shopEditVisible" @close="loadShopConfig" :shopInfo="selectedShopInfo" />
+    <ShopEdit v-model:visible="shopEditVisible" @close="loadShopConfig" :shopInfo="selectedShopInfo" :shop-type="props.shopType" />
 </template>
 <script lang="ts" setup>
 import { computed, ref, toRef, watch } from 'vue';
@@ -60,6 +60,7 @@ const selectedShopInfo = ref<any>(null);
 
 const props = defineProps<{
     visible: boolean;
+    shopType:string;
 }>();
 const emit = defineEmits<{
     (e: 'update:visible', value: boolean): void;
@@ -84,7 +85,7 @@ function addShop() {
 
 async function loadShopConfig() {
     try {
-        const resp = await http.post<any>('/shops/list/预售');
+        const resp = await http.post<any>(`/shops/list/${props.shopType}`);
         shopConfigList.value = resp || [];
     } catch (error) {
         ElMessage.error(`加载店铺配置失败,\n${error}`);

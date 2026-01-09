@@ -40,6 +40,7 @@ interface ShopInfo {
     loginAccount: string;
     loginPassword: string;
     verifyPhone?: string;
+    businessType:string;
     remark: string;
 }
 const shopInfo = ref<ShopInfo>({
@@ -48,6 +49,7 @@ const shopInfo = ref<ShopInfo>({
     loginAccount: '',
     loginPassword: '',
     verifyPhone: '',
+    businessType:'',
     remark: ''
 });
 const dialogTitle = ref('未触发的title');
@@ -55,6 +57,7 @@ const dialogTitle = ref('未触发的title');
 const props = defineProps<{
     visible: boolean;
     shopInfo?: any;
+    shopType:string;
 }>();
 
 const emit = defineEmits<{
@@ -77,6 +80,7 @@ watch(() => props.visible, (v) => {
                 id: '',
                 shopName: '',
                 loginAccount: '',
+                businessType:props.shopType,
                 loginPassword: '',
                 verifyPhone: '',
                 remark: ''
@@ -94,7 +98,7 @@ async function save() {
         const resp = await http.post('/shops/update',shopInfo.value);
         console.log("Update shop response: ", resp);
     } else {
-        const resp = await http.post('/shops/add/预售', shopInfo.value);
+        const resp = await http.post('/shops/add/'+props.shopType, shopInfo.value);
         console.log("Add shop response: ", resp);
     }
     close();

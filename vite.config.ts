@@ -15,4 +15,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/ws':{
+        target: 'https://api.presale.csdp.work',
+        ws: true,
+        changeOrigin: true,
+      }
+    }
+  }
 })

@@ -14,7 +14,10 @@ const router = createRouter({
         { path: 'profile', component: () => import('@/views/Profile.vue'), meta: { requiresAuth: true } },
         { path: 'roles', component: () => import('@/views/RolesManager.vue'), meta: { requiresAuth: true } },
         { path: 'presale', component: () => import('@/views/Presale.vue'), meta: { requiresAuth: true } },
-        {path: 'change-code', component: () => import('@/views/ChangeCode.vue'), meta: { requiresAuth: true } },
+        { path: 'change-code', component: () => import('@/views/ChangeCode.vue'), meta: { requiresAuth: true } },
+        { path: 'invoice', component: () => import('@/views/Invoice.vue'), meta: { requiresAuth: true } },
+        { path: 'swagger', component: () => import('@/views/Swagger.vue'), meta: { requiresAuth: true } },
+        { path: 'general-version-edit', component: () => import('@/views/GeneralVersionEdit.vue'), meta: { requiresAuth: true } },
       ]
     },
   ],
@@ -28,7 +31,7 @@ router.beforeEach(async (to, from, next) => {
     console.log('没有 token，重定向到登录页');
     next({ path: '/login', query: { redirect: to.fullPath } });
     return;
-  }
+  } 
   if (token && !authStore.userInfo?.userId) {
     try {
       const userInfo = await http.post<any>('/auth/info', { token: authStore.token });

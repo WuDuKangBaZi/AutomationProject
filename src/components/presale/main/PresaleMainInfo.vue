@@ -81,9 +81,10 @@
                         <el-table-column label="执行结果" prop="taskStatus" width="80px">
                             <template #default="scope">
                                 <el-tag
-                                    :type="scope.row.taskStatus === 2 ? 'success' : (scope.row.taskStatus === 'primary' ? 1 : 'danger')"
-                                    size="small">{{ scope.row.taskStatus === 2 ? '成功' : (scope.row.taskStatus === 1 ?
-                                        '进行中' :(scope.row.taskStatus === 3 ? "没有搜索到商品":'失败') ) }}</el-tag>
+                                    :type="getTaskStatusType(scope.row.taskStatus)"
+                                    size="small">
+                                    {{ getTaskStatusText(scope.row.taskStatus) }}
+                                </el-tag>
                             </template>
                         </el-table-column>
                         <el-table-column label="执行信息" width="100px">
@@ -133,6 +134,22 @@ const handleTabChange = (tabName: string) => {
         loadShopData();
     }
 };
+const getTaskStatusType=(status:number) =>{
+    switch(status){
+        case 2 : return 'success';
+        case 4 : return 'primary';
+        case -1 : return 'danger';
+        default: return 'info';
+    }
+}
+const getTaskStatusText =(status:number) =>{
+    switch(status){
+        case 2 : return '成功';
+        case 4 : return '跳过';
+        case -1 : return '失败';
+        default: return '未知状态';
+    }
+}
 const copyText = (text: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {

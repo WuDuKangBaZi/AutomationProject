@@ -18,13 +18,43 @@
                         <el-option label="下架" value="下架" />
                     </el-select>
                 </el-form-item>
+                <el-form-item>
+                    <div v-if="taskProgress.erpCount !== 0 || taskProgress.shopCount !== 0"
+                        style="font-weight: bold; color: #409EFF;">
+                        <span class="task-summary">
+                            当前待执行任务：
+                            <el-tag type="danger" size="small" effect="plain" class="ml-2">ERP采集: {{
+                                taskProgress.erpCount
+                                }}</el-tag>
+                            <el-tag type="danger" size="small" effect="plain" class="ml-2">店铺执行: {{
+                                taskProgress.shopCount
+                                }}</el-tag>
+                        </span>
+                    </div>
+                </el-form-item>
             </div>
 
             <div class="form-actions">
-                <el-button type="primary" @click="onSearch">搜索</el-button>
-                <el-button type="success" small @click="openAddDialog">批量导入</el-button>
-                <el-button type="success" link @click="shoowShopConfig">配置店铺</el-button>
-                <el-button type="warning" small link @click="exportExcel">导出结果</el-button>
+                <el-button type="primary" @click="onSearch">
+                    <el-icon>
+                        <Search />
+                    </el-icon>&nbsp;搜索
+                </el-button>
+                <el-button type="success" small @click="openAddDialog">
+                    <el-icon>
+                        <Plus />
+                    </el-icon>新增预售主任务
+                </el-button>
+                <el-button type="success" link @click="shoowShopConfig">
+                    <el-icon>
+                        <Setting />
+                    </el-icon>店铺配置
+                </el-button>
+                <el-button type="warning" small link @click="exportExcel">
+                    <el-icon>
+                        <Download />
+                    </el-icon>导出结果
+                </el-button>
             </div>
         </el-form>
 
@@ -32,73 +62,125 @@
 
         <!-- 表格 + 分页容器 -->
         <div class="table-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <el-table :data="searchData" style="flex: 1; width: 100%;" empty-text="暂无数据" :show-overflow-tooltip="true">
-                <el-table-column label="配置日期" width="175px" prop="configDateTime" />
-                <el-table-column prop="goodsCode" label="商品编码" width="200px">
+            <el-table :data="searchData" style="flex: 1; width: 100%;" empty-text="暂无数据" :show-overflow-tooltip="true"
+                :cell-style="{ textAlign: 'center' }">
+                <el-table-column label="配置日期" width="175px" prop="configDateTime" align="center" />
+                <el-table-column prop="goodsCode" label="商品编码" width="200px" align="center">
                     <template #default="scope">
                         <span style="cursor:pointer; color:#409EFF;" @click="copyText(scope.row?.goodsCode)">
                             {{ scope.row?.goodsCode }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="goodsName" label="商品名称" min-width="200">
+                <el-table-column prop="goodsName" label="商品名称" width="300px" align="center">
                     <template #default="scope">
                         <span style="cursor:pointer; color:#409EFF;" @click="copyText(scope.row?.goodsName)">
                             {{ scope.row?.goodsName }}
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="shortageReason" label="缺货原因" min-width="80" max-width="100" />
+                <el-table-column prop="shortageReason" label="缺货原因" width="100px" />
                 <el-table-column prop="presaleEndTime" label="预售截止" width="100" />
-                <el-table-column prop="handlingMethod" label="处理方式" />
-                <el-table-column prop="personInCharge" label="负责人" />
-                <el-table-column label="ERP采集">
+                <el-table-column prop="handlingMethod" label="处理方式" width="90px" style="align-content: center;" />
+                <el-table-column prop="personInCharge" label="负责人" width="100px" />
+                <el-table-column label="ERP采集" align="center" width="100px">
                     <template #default="scope">
-                        <div style="display: flex;gap: 3px; flex-wrap: wrap;">
-                            <el-tag size="small" type="info" effect="plain" title="总任务数">
-                                总:{{ scope.row?.mainTaskTotal }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.mainTaskRunning > 0" size="small" type="primary" effect="plain"
-                                title="进行中">
-                                进行中:{{ scope.row?.mainTaskRunning }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.mainTaskSuccess > 0" size="small" type="success" effect="plain"
-                                title="成功数">
-                                成功:{{ scope.row?.mainTaskSuccess }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.mainTaskFailed > 0" size="small" type="danger" effect="plain"
-                                title="失败数">
-                                失败:{{ scope.row?.mainTaskFailed }}
-                            </el-tag>
-                        </div>
+                        <el-icon style="color: #52c41a;" v-if="scope.row?.mainTaskSuccess > 0">
+                            <Finished />
+                        </el-icon>
+                        <el-icon style="color: #ff4d4f;" v-if="scope.row?.mainTaskFailed > 0">
+                            <el-icon>
+                                <CloseBold />
+                            </el-icon>
+                        </el-icon>
                     </template>
                 </el-table-column>
-                <el-table-column label="店铺执行">
-                    <template #default="scope">
-                        <div style="display: flex; gap: 1px; flex-wrap: wrap;">
-                            <el-tag size="small" type="info" effect="plain" title="总任务数">
-                                总:{{ scope.row?.erpTaskTotal }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.shopTaskRunning > 0" size="small" type="primary" effect="plain"
-                                title="进行中">
-                                进行中:{{ scope.row?.erpTaskRunning }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.erpTaskSuccess > 0" size="small" type="success" effect="plain"
-                                title="成功数">
-                                成功:{{ scope.row?.erpTaskSuccess }}
-                            </el-tag>
-                            <el-tag v-if="scope.row?.erpTaskFail > 0" size="small" type="danger" effect="plain"
-                                title="失败数">
-                                失败:{{ scope.row?.erpTaskFail }}
-                            </el-tag>
-                        </div>
-                    </template>
+                <el-table-column label="店铺执行情况汇总" align="center">
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="待处理数据数量" placement="top">
+                                <el-icon class="status-text-pending">
+                                    <Timer />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-pending">{{ scope.row?.erpTaskPending }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="进行中数据数量" placement="top">
+                                <el-icon class="status-text-running">
+                                    <Loading />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-running">{{ scope.row?.erpTaskRunning }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip placement="top">
+                                <template #content>
+                                    成功数量<br />此处成功为成功商品数量，而不是成功ERP任务数量
+                                </template>
+                                <el-icon class="status-text-success">
+                                    <Finished />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-success">{{ scope.row?.erpTaskSuccess }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip placement="top">
+                                <template #content>
+                                    失败数量<br />此处失败为失败商品数量，而不是失败ERP任务数量
+                                </template>
+                                <el-icon class="status-text-fail">
+                                    <CloseBold />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-fail">{{ scope.row?.erpTaskFail }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="80px" align="center">
+                        <template #header>
+                            <el-tooltip content="未搜索到商品数据数量" placement="top">
+                                <el-icon class="status-text-empty">
+                                    <DocumentDelete />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-empty">{{ scope.row?.erpTaskEmpty }}</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="80px" align="center">
+                        <template #header>
+                            <el-tooltip content="取消的任务数量" placement="top">
+                                <el-icon class="status-text-canel">
+                                    <CircleClose />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class="status-text-canel">{{ scope.row?.erpTaskCancel }}</span>
+                        </template>
+                    </el-table-column>
                 </el-table-column>
-                <el-table-column label="操作">
+                <el-table-column label="操作" width="140px" align="center">
                     <template #default="scope">
                         <div class="action-buttons">
                             <el-button link size="small" type="primary"
                                 @click="showPresaleInfo(scope.row)">查看详细</el-button>
+                            <el-button link size="small" type="danger" @click="deleteTask(scope.row)">删除任务</el-button>
                         </div>
                     </template>
                 </el-table-column>
@@ -111,19 +193,23 @@
                     @size-change="handleSizeChange" @current-change="handleCurrentChange" />
             </div>
         </div>
-        <ShopConfig v-model:visible="shopConfigVisible" />
+        <ShopConfig v-model:visible="shopConfigVisible" shopType="预售" />
         <AddPresaleMain v-model:visible="addPresaleDialogVisible" @reoload="onSearch" />
         <PresaleMainInfo v-model:visible="presaleInfo" :selectedPresaleMain="selectedRow" />
     </div>
 </template>
 <script lang="ts" setup>
 import { defineComponent, h, onMounted, reactive, ref } from 'vue';
-
-import ShopConfig from '@/components/presale/shop/ShopConfig.vue';
+import ShopConfig from '@/components/shop/ShopConfig.vue';
 import AddPresaleMain from '@/components/presale/main/AddPresaleMain.vue';
 import PresaleMainInfo from '@/components/presale/main/PresaleMainInfo.vue';
 import http from '@/utils/http';
 import { ElMessage, ElMessageBox, ElRadio, ElRadioGroup } from 'element-plus';
+import { Finished, CloseBold, Timer, Loading, DocumentDelete, Download, Setting, CircleClose } from '@element-plus/icons-vue';
+const taskProgress = reactive({
+    erpCount: 0,
+    shopCount: 0,
+})
 const currentPage = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
@@ -151,8 +237,36 @@ async function onSearch() {
     const resp = await http.post<any>('/presaleMain/search', formData);
     total.value = resp.total;
     searchData.value = resp.records || [];
+    getTaskProgress();
 }
+function deleteTask(row: any) {
+    ElMessageBox.confirm(`确定删除预售任务【${row.goodsCode}】吗？此操作不可恢复！`, '删除确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+    }).then(async () => {
+        console.log("delete presale task:", row);
+        const resp = await http.post<any>(`/presaleMain/delete/${row.id}`);
+        if (resp.code !== 200) {
+            ElMessage({
+                message: resp.message || '预售任务删除失败',
+                type: 'error',
+                duration: 2000
+            });
+            return;
+        } else {
+            ElMessage({
+                message: '预售任务删除成功',
+                type: 'success',
+                duration: 2000
+            });
+        }
+        onSearch();
+    }).catch(() => {
+        console.log("取消删除预售任务");
+    });
 
+}
 function copyText(text: string) {
     navigator.clipboard.writeText(text).then(() => {
         console.log('Text copied to clipboard:', text);
@@ -209,12 +323,12 @@ function exportExcel() {
         console.log("export excel:", exportType.value, exprotOptions.value);
         const resp = await http.post('/pub/export/presaleMain',
             {
-                presaleMainQueryDTO:formData,
+                presaleMainQueryDTO: formData,
                 exportType: exportType.value,
                 exportOption: exprotOptions.value
             }
         )
-        
+
     }).catch(() => {
         console.log("export cancelled");
     })
@@ -234,6 +348,12 @@ function showPresaleInfo(row: any) {
     selectedRow.value = row;
     presaleInfo.value = true;
 }
+async function getTaskProgress() {
+    const resp = await http.get<any>('/task/presale/progress');
+    console.log("task progress:", resp);
+    taskProgress.erpCount = resp.erpCount;
+    taskProgress.shopCount = resp.shopCount;
+}
 onMounted(() => {
     const today = new Date();
     const year = today.getFullYear();
@@ -241,6 +361,8 @@ onMounted(() => {
     const day = String(today.getDate()).padStart(2, '0');
     formData.configDate = `${year}-${month}-${day}`;
     formData.handlingMethod = '全部';
+    // 获取当前任务进度
+    getTaskProgress();
 })
 
 </script>
@@ -270,6 +392,7 @@ onMounted(() => {
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 16px;
+    margin-left: 10px;
 }
 
 .table-wrapper {
@@ -277,5 +400,48 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+.task-summary {
+    font-size: 14px;
+    white-space: nowrap;
+    /* 防止换行 */
+    display: inline-flex;
+    align-items: center;
+}
+
+.ml-2 {
+    margin-left: 8px;
+}
+
+.status-text-pending {
+    color: #E6A23C;
+}
+
+.status-text-running {
+    color: #409EFF;
+}
+
+.status-text-success {
+    color: #67C23A;
+}
+
+.status-text-fail {
+    color: #F56C6C;
+}
+
+.status-text-empty {
+    color: #909399;
+}
+
+.status-text-canel {
+    color: #909399;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
 </style>

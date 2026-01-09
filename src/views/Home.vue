@@ -3,27 +3,75 @@ import { useAuthStore } from '@/stores/auth';
 import { computed, onMounted } from 'vue';
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { House, User, Setting, Avatar, Histogram, Service, Money,Timer, Edit } from '@element-plus/icons-vue'
+import { House, User, Setting, Avatar, Histogram, Service, Money, Timer, Edit, Document,EditPen  } from '@element-plus/icons-vue'
 import router from '@/router';
 import http from '@/utils/http';
+import { useGroupWebSocket } from '@/utils/useGroupWebSocket';
+import { useWebSocket } from '@/utils/ws/useWebSocket';
 const authStore = useAuthStore();
 
 onMounted(async () => {
   try {
+    console.log("Home mounted");
     const resp = await http.get('/plugin/status')
     console.log(resp);
     // 每次加载首页，获取用户信息
     const userInfo = await http.post<any>('/auth/info', { token: authStore.token });
     authStore.setUserInfo(userInfo);
+    // 通知权限
+    if (!("Notification" in window)) {
+      console.log("当前浏览器不支持通知功能");
+    } else {
+      requestNotificationPermission();
+    }
   }
   catch (error) {
     console.log(error);
     router.push('/login');
   }
+  registerWs();
 
 });
 
 
+async function registerWs() {
+  const { connect, subscribe } = useWebSocket('/ws')
+
+  connect()
+
+  const topic = `/topic/group/${authStore.userInfo?.groupName}`
+
+  subscribe(topic, (msg) => {
+    console.log('📩 收到 WS 消息:', msg)
+
+    if (Notification.permission === 'granted') {
+      const notification = new Notification(
+        msg.title || '新通知',
+        {
+          body: msg.message,
+          icon: '/images/ddsw.png',
+        }
+      )
+
+      setTimeout(() => notification.close(), 5000)
+    }
+  })
+}
+
+async function requestNotificationPermission() {
+  if (Notification.permission === "granted") {
+    // 已授权，可以直接发通知
+    return true;
+  } else if (Notification.permission === "denied") {
+    // 用户拒绝了，无法再请求（除非用户手动更改设置）
+    console.log("用户已拒绝通知权限");
+    return false;
+  } else {
+    // 首次请求权限
+    const permission = await Notification.requestPermission();
+    return permission === "granted";
+  }
+}
 
 const route = useRoute()
 const activeMenu = ref(route.path)
@@ -74,6 +122,12 @@ watch(route, () => {
               </el-icon>
               <span>开发</span>
             </template>
+            <el-menu-item index="/swagger">
+              <el-icon>
+                <Document />
+              </el-icon>
+              <span>接口文档</span>
+            </el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="2" v-if="authStore.userInfo?.roles.includes('运营组')">
             <template #title>
@@ -94,6 +148,13 @@ watch(route, () => {
               </el-icon>
               <span>编码变更</span>
             </el-menu-item>
+            <el-menu-item index="/general-version-edit">
+              <el-icon>
+                <EditPen  />
+              </el-icon>
+              <span>通版改新</span>
+            </el-menu-item>
+
           </el-sub-menu>
           <el-sub-menu index="3" v-if="authStore.userInfo?.roles.includes('客服组')">
             <template #title>
@@ -102,7 +163,7 @@ watch(route, () => {
               </el-icon>
               <span>客服组</span>
             </template>
-            
+
           </el-sub-menu>
           <el-sub-menu index="4" v-if="authStore.userInfo?.roles.includes('财务组')">
             <template #title>
@@ -111,6 +172,12 @@ watch(route, () => {
               </el-icon>
               <span>财务组</span>
             </template>
+            <el-menu-item index="/invoice">
+              <el-icon>
+                <Document />
+              </el-icon>
+              <span>发票管理</span>
+            </el-menu-item>
           </el-sub-menu>
           <el-sub-menu index="998" v-if="authStore.userInfo?.roles.includes('系统管理员')">
             <template #title>
@@ -144,7 +211,7 @@ watch(route, () => {
       <el-container>
         <el-header class="header">
           <div class="header-left">
-
+            欢迎，{{ authStore.userInfo?.username || '用户' }}！
           </div>
           <div class="header-right">
             <el-dropdown trigger="hover" @command="handleDropdownCommand">

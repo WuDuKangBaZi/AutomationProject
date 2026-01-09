@@ -22,12 +22,7 @@
         <el-divider style="flex: 0 0 auto; margin: 8px 0;" />
         <div class="table-wrapper">
             <el-table :data="changeCodeList" style="flex: 1; width: 100%;" empty-text="暂无数据"
-                :show-overflow-tooltip="true" @expand-change="handleExpandChange">
-                <el-table-column type="expand">
-                    <template #default="scope">
-                        <div v-if="scope.row.resultCount === 0" style="text-align: center;">没有结果...</div>
-                    </template>
-                </el-table-column>
+                :show-overflow-tooltip="true">
                 <el-table-column prop="configDate" label="配置日期" />
                 <el-table-column prop="oldCode" label="旧编码" />
                 <el-table-column prop="goodsName" label="品名" />
@@ -64,11 +59,16 @@
                         </div>
                     </template>
                 </el-table-column>
+                <el-table-column label="操作">
+                    <template #default="scope">
+                        <el-button type="text" size="small" @click="openDetails(scope.row.id)">查看详情</el-button>
+                    </template>
+                </el-table-column>
             </el-table>
             <div style="flex: 0 0 auto;margin-top: 10px;">
                 <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize"
-                    :pageSizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper"
-                    :total="changeCodeList.length" @current-change="onSearch" @size-change="onSearch">
+                    :pageSizes="[10, 20, 50, 100]" layout="total, sizes, prev, pager, next, jumper" :total="searchTotal"
+                    @current-change="onSearch" @size-change="onSearch">
                 </el-pagination>
             </div>
         </div>
@@ -90,6 +90,48 @@
             <el-button type="primary" @click="batchInsert">确 定</el-button>
         </template>
     </el-dialog>
+    <el-drawer title="改编码任务详情" v-model="detailsVisible" size="50%">
+        <template #title>
+            <div>
+                <span>改编码任务详情</span>
+                <el-button link type="primary" @click="copyExcelType">复制Excel可粘贴格式</el-button>
+            </div>
+        </template>
+        <el-table :data="detailsList" border table-layout="auto" style="width:100%">
+            <el-table-column prop="platform" label="平台" />
+            <el-table-column prop="shop" label="店铺" width="" />
+            <el-table-column prop="goodsId" label="商品ID" />
+            <el-table-column prop="goodsName" label="商品名称" width="200px" show-overflow-tooltip>
+                <template #default="scope">
+                    <span
+                        style="cursor:pointer; color:#409EFF; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        {{ scope.row?.goodsName }}
+                    </span>
+                </template>
+            </el-table-column>
+
+            <el-table-column prop="status" label="状态" />
+            <el-table-column prop="errorMessage" label="错误信息" show-overflow-tooltip>
+                <template #default="scope">
+                    <span style="cursor:pointer; color:red; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        {{ scope.row.errorMessage }}
+                    </span>
+                </template>
+            </el-table-column>
+            <el-table-column prop="operator" label="操作人" />
+            <el-table-column prop="operationTime" label="操作时间" />
+            <el-table-column prop="operatorType" label="操作类型" />
+            <el-table-column prop="systemStyleCode" label="系统款号" show-overflow-tooltip>
+                <template #default="scope">
+                    <span
+                        style="cursor:pointer; color:#409EFF; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        {{ scope.row?.systemStyleCode }}
+                    </span>
+                </template>
+                </el-table-column>
+            <el-table-column prop="status" label="状态" />
+        </el-table>
+    </el-drawer>
 </template>
 <script lang="ts" setup>
 import http from '@/utils/http';
@@ -97,21 +139,27 @@ import { ElMessage } from 'element-plus';
 import { computed, onMounted, reactive, ref } from 'vue';
 const pastChangeCode = ref("");
 const dialogVisible = ref(false)
+const detailsVisible = ref(false);
 const changeCodeList = ref<any[]>([]);
 const pageSize = ref(10);
 const currentPage = ref(1);
-
+const searchTotal = ref(0);
+const detailsList = ref<any[]>([]);
 const searchForm = reactive({
     date: '',
     oldCode: '',
     newCode: ''
 });
-const handleExpandChange = async (row: any, expandedRows: any[]) => {
-    console.log("expand change", row, expandedRows);
+const openDetails = async (rowId: any) => {
+    const resp = await http.get<any>('/cc/queryDetails/' + rowId);
+    detailsList.value = resp;
+    detailsVisible.value = true;
 }
+
 const exportData = async () => {
     console.log("export data", searchForm);
     const resp = await http.post<any>('/pub/export/changeCode', searchForm);
+    detailsList.value = resp;
 }
 const pastedRows = computed(() => {
     if (!pastChangeCode.value) return [];
@@ -135,6 +183,46 @@ const pastedRows = computed(() => {
             };
         });
 })
+const copyExcelType = async () => {
+    if (!detailsList.value || detailsList.value.length === 0) {
+        ElMessage.warning("当前无数据可复制");
+        return;
+    }
+    // 1. 定义表头 (对应详情弹窗中的列)
+    const headers = [
+        '平台', '店铺', '商品ID', '商品名称', '状态',
+        '错误信息', '操作人', '操作时间', '操作类型', '系统款号'
+    ];
+
+    // 2. 构建数据行 (使用制表符 \t 分隔)
+    const rows = detailsList.value.map(row => {
+        return [
+            row.platform || '',
+            row.shop || '',
+            row.goodsId || '',
+            row.goodsName || '',
+            row.status || '',
+            (row.errorMessage || '').replace(/[\r\n]+/g, ' '),
+            row.operator || '',
+            row.operationTime || '',
+            row.operatorType || '',
+            row.systemStyleCode || ''
+        ].join('\t');
+    });
+
+    // 3. 组合最终文本
+    const textToCopy = [headers.join('\t'), ...rows].join('\n');
+
+    // 4. 写入剪贴板
+    try {
+        await navigator.clipboard.writeText(textToCopy);
+        ElMessage.success("详情数据已复制，可直接粘贴到 Excel");
+    } catch (err) {
+        console.error('复制失败:', err);
+        ElMessage.error("复制失败，请手动复制");
+    }
+
+}
 async function batchInsert() {
     console.log("batch insert", pastedRows.value);
     try {
@@ -155,6 +243,7 @@ async function onSearch() {
         pageNo: currentPage.value
     });
     changeCodeList.value = resp.records || [];
+    searchTotal.value = resp.total || 0;
 }
 onMounted(() => {
     const today = new Date();
