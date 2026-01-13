@@ -14,12 +14,12 @@
                 </el-form-item>
             </div>
             <div class="form-actions">
-                <el-button type="primary">
+                <el-button type="primary" @click="onQuery">
                     <el-icon>
                         <Search />
                     </el-icon>&nbsp;搜索
                 </el-button>
-                <el-button type="success">
+                <el-button type="success" @click="addVisible = true">
                     <el-icon>
                         <Plus />
                     </el-icon>&nbsp;新增通版改新任务
@@ -39,10 +39,10 @@
         <el-divider style="flex: 0 0 auto; margin: 8px 0;" />
         <!-- 表格 + 分页 -->
         <div class="table-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <el-table :data="tempData" style="flex: 1; width: 100%;" empty-text="暂无数据" :show-overflow-tooltip="true"
+            <el-table :data="searchDate" style="flex: 1; width: 100%;" empty-text="暂无数据" :show-overflow-tooltip="true"
                 :cell-style="{ textAlign: 'center' }">
-                <el-table-column label="日期" widht="175px" prop="configDate" align="center" width="175px" />
-                <el-table-column label="文件名" prop="fileNae" align="center" width="200px">
+                <el-table-column label="日期" widht="175px" prop="date" align="center" width="175px" />
+                <el-table-column label="文件名" prop="fileNae" align="center" width="100px">
                     <template #default="scope">
                         <span style="cursor:pointer; color: #409EFF;" @click="copyText(scope.row.fileName)">{{
                             scope.row.fileName }}</span>
@@ -54,16 +54,10 @@
                             scope.row.newCode }}</span>
                     </template>
                 </el-table-column>
-                <!-- <el-table-column label="旧版编码" prop="oldCode" align="center" width="150px">
+                <el-table-column label="商品名称" prop="goodsName" align="center" width="100px">
                     <template #default="scope">
-                        <span style="cursor:pointer; color: #409EFF;" @click="copyText(scope.row.oldCode)">{{
-                            scope.row.oldCode }}</span>
-                    </template>
-                </el-table-column> -->
-                <el-table-column label="商品名称" prop="productName" align="center" wdith="300px">
-                    <template #default="scope">
-                        <span style="cursor:pointer; color: #409EFF;" @click="copyText(scope.row.productName)">{{
-                            scope.row.productName }}</span>
+                        <span style="cursor:pointer; color: #409EFF;" @click="copyText(scope.row.goodsName)">{{
+                            scope.row.goodsName }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="新版定价" prop="newPrice" align="center" width="120px" />
@@ -76,55 +70,200 @@
                 </el-table-column>
                 <el-table-column label="运营备注" align="center" width="150px">
                     <template #default="scope">
-                        <el-button type="primary" link size="small" @click="drawerVisible = true" >查看/修改</el-button>
+                        <span class="operation-remark-text" @click="openDrawer(scope.row)"
+                            style="cursor: pointer; color: #409EFF;">
+                            {{ formatOperationRemark(scope.row.operationRemark) || '点击编辑' }}
+                        </span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" align="center" width="150px">
+                <el-table-column label="操作" align="center" width="250px">
                     <template #default="scope">
-                        <el-button type="primary" link size="small">编辑</el-button>
-                        <el-button type="danger" link size="small">删除</el-button>
+                        <el-button type="danger" link size="small" @click="deleteRow(scope.row.id)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
         </div>
     </div>
-   <el-drawer title="运营备注详情" v-model="drawerVisible" size="35%">
-        <div>这里是运营备注的详细内容，可以进行查看和修改。</div>
-   </el-drawer> 
+    <el-drawer title="运营备注详情" v-model="drawerVisible" size="35%" style="pointer-events: none user-select: none;" >
+        <el-table :data="editableOperationRemark" style="width: 100%;" :show-overflow-tooltip="true"
+            :cell-style="{ textAlign: 'center' }">
+            <el-table-column label="店铺" prop="key" align="center" width="150px">
+                <template #default="scope">
+                    <el-select v-model="scope.row.key" placeholder="请选择店铺" style="width: 100%;">
+                        <el-option v-for="shop in shopOptions" :key="shop.value" :label="shop.label"
+                            :value="shop.value" />
+                    </el-select>
+                </template>
+            </el-table-column>
+            <el-table-column label="备注" prop="value" align="center">
+                <template #default="scope">
+                    <el-input v-model="scope.row.value" placeholder="请输入值" />
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" align="center" width="100px">
+                <template #default="scope">
+                    <el-button type="danger" link size="small" @click="removeRow(scope.$index)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <!-- <div style="margin-top: 16px; text-align: right;">
+            <el-button type="primary" @click="addRow">添加行</el-button>
+            <el-button type="success" @click="saveOperationRemark">保存</el-button>
+        </div> -->
+    </el-drawer>
     <ShopConfig v-model:visible="shopConfigVisible" shopType="通版改新" />
+    <AddGeneralVersion v-model:visible="addVisible" @refreshData="onQuery" />
 </template>
 <script setup lang="ts">
+import AddGeneralVersion from '@/components/GeneralVersionEdit/AddGeneralVersion.vue';
 import ShopConfig from '@/components/shop/ShopConfig.vue';
+import OperationNotesTable from '@/components/GeneralVersionEdit/OperationNotesTable.vue';
+import http from '@/utils/http';
 import { Search, Plus, Download, Setting } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
-import { reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { reactive, ref, onMounted } from 'vue';
+
 const shopConfigVisible = ref(false);
 const drawerVisible = ref(false);
+const searchDate = ref<any>(null);
+const addVisible = ref(false);
+const selectedOperationRemark = ref<object>({});
+const editableOperationRemark = ref<any[]>([]);
+const selectedRowId = ref<number | null>(null);
 const formData = reactive({
     fileName: '',
     configDate: "",
     productName: ""
 });
-const tempData = [
-    {
-        fileName: '文件A.xlsx',
-        newCode: 'NB123456',
-        oldCode: 'OB654321',
-        productName: '商品A',
-        newPrice: '99.99',
-        type: '类型1',
-        remark: '这是备注信息A'
-    },
-    {
-        fileName: '文件B.xlsx',
-        newCode: 'NB223344',
-        oldCode: 'OB443322',
-        productName: '商品Basdasdasdadasdasdas',
-        newPrice: '149.99',
-        type: '类型2',
-        remark: '这是备注信息B12312312312312312'
+
+const shopOptions = ref<{ label: string; value: string }[]>([]);
+const formatOperationRemark = (remark: any) => {
+    if (!remark) return '';
+
+    // 如果是字符串（可能是 JSON 串），先尝试解析
+    let data = remark;
+    if (typeof remark === 'string') {
+        try {
+            data = JSON.parse(remark);
+        } catch (e) {
+            return remark; // 解析失败直接返回原字符串
+        }
     }
-]
+
+    // 处理数组结构: [{"key": "val"}, {"key2": "val2"}]
+    if (Array.isArray(data)) {
+        return data.map(item => {
+            const key = Object.keys(item)[0];
+            return key ? `${key}: ${item[key]}` : '';
+        }).filter(Boolean).join('; '); // 用分号连接
+    }
+
+    // 处理普通对象: {"key": "val"}
+    if (typeof data === 'object') {
+        return Object.entries(data)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('; ');
+    }
+
+    return String(data);
+};
+
+async function deleteRow(id: number) {
+    try {
+        await ElMessageBox.confirm('确定要删除该通版改新任务吗？', '删除确认', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+        }).then(async () => {
+            const resp = await http.post<any>('/generic/delete', { id }); // 假设后端接口为 /generic/deleteGeneralVersion
+            ElMessage({
+                message: '删除成功',
+                type: 'success',
+                duration: 2000,
+            });
+            onQuery(); // 刷新数据
+        })
+
+
+    } catch (error) {
+        console.error('删除失败:', error);
+        ElMessage({
+            message: '删除失败',
+            type: 'error',
+            duration: 3000,
+        });
+    }
+
+}
+async function fetchShopOptions() {
+    try {
+        const resp = await http.post<any>('/shops/list/通版改新'); // 假设后端接口为 /generic/shopOptions
+        console.log(resp)
+        resp.forEach((shop: any) => {
+            shopOptions.value.push({
+                label: shop.shopName,
+                value: shop.shopName,
+            });
+        });
+    } catch (error) {
+        console.error('获取店铺选项失败:', error);
+        ElMessage({
+            message: '获取店铺选项失败',
+            type: 'error',
+            duration: 3000,
+        });
+    }
+}
+
+onMounted(() => {
+    fetchShopOptions();
+});
+
+function openDrawer(row: any) {
+    console.log('备注内容:', row);
+    drawerVisible.value = true;
+    selectedOperationRemark.value = row.operationRemark;
+    selectedRowId.value = row.id;
+    // 修复：确保键和值有效
+    editableOperationRemark.value = (row.operationRemark || []).map((item: any) => {
+        const key = Object.keys(item || {})[0]; // 确保 item 是对象
+        const value = key ? item[key] : ''; // 如果 key 存在，则获取值
+        return { key: key || '', value }; // 如果 key 不存在，设置为空字符串
+    });
+}
+
+function addRow() {
+    editableOperationRemark.value.push({ key: '', value: '' });
+}
+
+function removeRow(index: number) {
+    editableOperationRemark.value.splice(index, 1);
+}
+
+async function saveOperationRemark() {
+    // 将键值对数组转换回后端需要的数组格式
+    const updatedRemark = editableOperationRemark.value.map(row => ({
+        [row.key]: row.value,
+    }));
+    console.log('保存的备注内容:', updatedRemark);
+    const resp = await http.post('/generic/saveOperationRemark', {
+        id: selectedRowId.value, // 假设有 id 字段
+        operationRemark: updatedRemark,
+    });
+    console.log('保存结果:', resp);
+    ElMessage({
+        message: '运营备注已保存',
+        type: 'success',
+        duration: 2000,
+    });
+    drawerVisible.value = false;
+}
+
+async function onQuery() {
+    const resp = await http.post<any>('/generic/query', formData);
+    console.log('查询结果:', resp);
+    searchDate.value = resp.records;
+}
 function copyText(text: string) {
     navigator.clipboard.writeText(text).then(() => {
         console.log('Text copied to clipboard:', text);
