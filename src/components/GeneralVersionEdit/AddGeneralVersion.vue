@@ -1,5 +1,5 @@
 <template>
-    <el-dialog title="添加任务" v-model="addDialogVisible" width="50%" :before-close="() => { }">
+    <el-dialog title="添加任务" v-model="addDialogVisible" width="50%">
         <template #title>
             <div style="user-select: none;">
                 <span>添加通版改新任务</span>
@@ -33,7 +33,7 @@
 </template>
 <script setup lang="ts">
 import http from '@/utils/http';
-import { ElTableColumn } from 'element-plus';
+import { ElTableColumn, ElMessage } from 'element-plus';
 import { computed, ref } from 'vue';
 const pasted = ref("");
 const pastedRows = ref<any[]>([]);
@@ -52,16 +52,21 @@ const addDialogVisible = computed({
     }
 });
 const onSubmit = async () => {
-    // 提交数据
-    const resp = await http.post<any>('/generic/add', pastedRows.value);
-    console.log("提交结果:", resp);
-    emit('refreshData'); // 通知父组件刷新数据
-    addDialogVisible.value = false;
-    
+    try {
+        const resp = await http.post<any>('/generic/add', pastedRows.value);
+        console.log("提交结果:", resp);
+        emit('refreshData'); // 通知父组件刷新数据
+        addDialogVisible.value = false;
+        ElMessage({ message: '添加成功', type: 'success', duration: 2000 });
+    } catch (error) {
+        console.error('提交失败:', error);
+        ElMessage({ message: '添加失败，请重试', type: 'error', duration: 3000 });
+    }
+
 };
 const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    
+
     // 1. 处理 "1.7" 或 "1.07" 这种月.日格式
     if (/^\d+\.\d+$/.test(dateStr)) {
         const parts = dateStr.split('.');
@@ -70,7 +75,7 @@ const formatDate = (dateStr: string) => {
         const year = new Date().getFullYear();
         return `${year}-${month}-${day}`;
     }
-    return dateStr; 
+    return dateStr;
 };
 const parseRows = () => {
     if (!pasted.value) {
@@ -118,7 +123,7 @@ const parseRows = () => {
         // 更新公共信息逻辑：
         if (colDate || colEditor || colFileName) {
             currentCommon = {
-                date: colDate || currentCommon.date,     
+                date: colDate || currentCommon.date,
                 editor: colEditor || currentCommon.editor,
                 fileName: colFileName || currentCommon.fileName
             };

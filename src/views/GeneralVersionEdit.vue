@@ -29,7 +29,7 @@
                         <Setting />
                     </el-icon>&nbsp;店铺配置
                 </el-button>
-                <el-button type="warning" link>
+                <el-button type="warning" link @click="exportExcel">
                     <el-icon>
                         <Download />
                     </el-icon>&nbsp;导出结果
@@ -76,15 +76,71 @@
                         </span>
                     </template>
                 </el-table-column>
+                <el-table-column label="店铺执行情况汇总" align="center">
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="待处理数据数量" placement="top">
+                                <el-icon class="status-text-pending">
+                                    <Timer />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class=status-text-pending>{{ scope.row.taskPending }} </span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="处理中数据数量" placement="top">
+                                <el-icon class="status-text-running">
+                                    <Loading />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class=status-text-running>{{ scope.row.taskRunning }} </span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="处理成功数据数量" placement="top">
+                                <el-icon class="status-text-success">
+                                    <Check />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class=status-text-success>{{ scope.row.taskSuccess }} </span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column width="60px" align="center">
+                        <template #header>
+                            <el-tooltip content="处理失败数据数量" placement="top">
+                                <el-icon class="status-text-fail">
+                                    <Close />
+                                </el-icon>
+                            </el-tooltip>
+                        </template>
+                        <template #default="scope">
+                            <span class=status-text-fail>{{ scope.row.taskFail }} </span>
+                        </template>
+                    </el-table-column>
+                </el-table-column>
                 <el-table-column label="操作" align="center" width="250px">
                     <template #default="scope">
                         <el-button type="danger" link size="small" @click="deleteRow(scope.row.id)">删除</el-button>
+                        <el-button type="primary" link size="small" @click="showInfo(scope.row.id)">查看详细</el-button>
                     </template>
                 </el-table-column>
             </el-table>
+            <div style="flex: 0 0 auto; margin-top: 10px;">
+                <el-pagination v-model:current-page="currentPage" v-model:page-size="formData.pageSize"
+                    :page-sizes="[10, 20, 50, 100]" :total="total" layout="total, sizes, prev, pager, next, jumper"
+                    @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+            </div>
         </div>
     </div>
-    <el-drawer title="运营备注详情" v-model="drawerVisible" size="35%" style="pointer-events: none user-select: none;" >
+    <el-drawer title="运营备注详情" v-model="drawerVisible" size="35%" style="pointer-events: none; user-select: none;">
         <el-table :data="editableOperationRemark" style="width: 100%;" :show-overflow-tooltip="true"
             :cell-style="{ textAlign: 'center' }">
             <el-table-column label="店铺" prop="key" align="center" width="150px">
@@ -117,8 +173,8 @@
 <script setup lang="ts">
 import AddGeneralVersion from '@/components/GeneralVersionEdit/AddGeneralVersion.vue';
 import ShopConfig from '@/components/shop/ShopConfig.vue';
-import OperationNotesTable from '@/components/GeneralVersionEdit/OperationNotesTable.vue';
 import http from '@/utils/http';
+import { showNotification } from '@/utils/Notify';
 import { Search, Plus, Download, Setting } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { reactive, ref, onMounted } from 'vue';
@@ -130,12 +186,30 @@ const addVisible = ref(false);
 const selectedOperationRemark = ref<object>({});
 const editableOperationRemark = ref<any[]>([]);
 const selectedRowId = ref<number | null>(null);
+const currentPage = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 const formData = reactive({
     fileName: '',
     configDate: "",
-    productName: ""
+    productName: "",
+    pageNo: 1,
+    pageSize: 20,
 });
-
+const handleSizeChange = (newSize: number) => {
+    formData.pageSize = newSize;
+    onQuery();
+};
+const handleCurrentChange = (newPage: number) => {
+    formData.pageNo = newPage;
+    onQuery();
+}
+const exportExcel = async () => {
+    ElMessage.info('当前功能还未实现...');
+}
+const showInfo = async (id: number) => {
+    console.log('查看详细信息:', id);
+}
 const shopOptions = ref<{ label: string; value: string }[]>([]);
 const formatOperationRemark = (remark: any) => {
     if (!remark) return '';
@@ -317,5 +391,33 @@ function copyText(text: string) {
     /* 防止换行 */
     display: inline-flex;
     align-items: center;
+}
+
+.ml-2 {
+    margin-left: 8px;
+}
+
+.status-text-pending {
+    color: #E6A23C;
+}
+
+.status-text-running {
+    color: #409EFF;
+}
+
+.status-text-success {
+    color: #67C23A;
+}
+
+.status-text-fail {
+    color: #F56C6C;
+}
+
+.status-text-empty {
+    color: #909399;
+}
+
+.status-text-canel {
+    color: #909399;
 }
 </style>
