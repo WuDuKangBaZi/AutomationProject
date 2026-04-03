@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 import { computed, onMounted } from 'vue';
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { House, User, Setting, Avatar, Histogram, Service, Money, Timer, Edit, Document,EditPen  } from '@element-plus/icons-vue'
+import { House, User, Setting, Avatar, Histogram, Service, Money, Timer, Edit, Document,EditPen, Box  } from '@element-plus/icons-vue'
 import router from '@/router';
 import http from '@/utils/http';
 import { useGroupWebSocket } from '@/utils/useGroupWebSocket';
@@ -153,6 +153,12 @@ watch(route, () => {
                 <EditPen  />
               </el-icon>
               <span>通版改新</span>
+            </el-menu-item>
+            <el-menu-item index="/distribution">
+              <el-icon>
+                <Box  />
+              </el-icon>
+              <span>分销铺货</span>
             </el-menu-item>
 
           </el-sub-menu>

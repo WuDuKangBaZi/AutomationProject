@@ -18,6 +18,7 @@ const router = createRouter({
         { path: 'invoice', component: () => import('@/views/Invoice.vue'), meta: { requiresAuth: true } },
         { path: 'swagger', component: () => import('@/views/Swagger.vue'), meta: { requiresAuth: true } },
         { path: 'general-version-edit', component: () => import('@/views/GeneralVersionEdit.vue'), meta: { requiresAuth: true } },
+        { path:'distribution', component: () => import('@/views/Distribution.vue'), meta: { requiresAuth: true } },
       ]
     },
   ],
